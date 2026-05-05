@@ -50,6 +50,8 @@
 <h2>Ingresos</h2>
 
 <input type="date" id="ingFecha">
+<button onclick="ponerFechaHoy()">Hoy</button>
+
 <input type="number" id="ingMonto">
 <button onclick="agregarIngreso()">Agregar</button>
 
@@ -65,13 +67,14 @@
 </thead>
 <tbody id="tablaIngresos"></tbody>
 </table>
-
+<p id="total7dias"></p>
 <hr>
 
 <!-- RESUMEN -->
 <h2>Resumen</h2>
 
 <p>Total: <span id="totalMes"></span></p>
+<p id="estadoDinero"></p>
 <p>Fondo 5%: <span id="fondo"></span></p>
 <p>Disponible: <span id="disponible"></span></p>
 
