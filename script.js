@@ -1,9 +1,10 @@
-clet devMode = false;
+let devMode = false;
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 
 let tipoCambio = 520;
 let moneda = localStorage.getItem("moneda") || "CRC";
+let meta = localStorage.getItem("meta") ? Number(localStorage.getItem("meta")) : 20000;
 
 document.getElementById("moneda").value = moneda;
 
@@ -153,17 +154,18 @@ function render() {
   let ingresosFiltrados = ingresos.filter(i => {
     let f = new Date(i.fecha);
     let diff = (hoy - f) / (1000 * 60 * 60 * 24);
-    return diff <= 7;
+    return diff <= 7 && diff >= 0;
   });
 
   let tIng = "";
 
-  ingresosFiltrados.forEach((i, idx) => {
+  ingresosFiltrados.forEach((i) => {
+    let ingresoIndex = ingresos.indexOf(i);
     tIng += `
     <tr>
     <td>${i.fecha}</td>
     <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-    <td><button onclick="eliminarIngreso(${idx})">X</button></td>
+    <td><button onclick="eliminarIngreso(${ingresoIndex})">X</button></td>
     </tr>`;
   });
 
@@ -230,8 +232,6 @@ function actualizarGrafica() {
     valores.push(convertir(acum));
   });
 
-  let meta = 20000;
-
   if (grafica) grafica.destroy();
 
   let ctx = document.getElementById("grafica").getContext("2d");
@@ -252,6 +252,7 @@ function actualizarGrafica() {
 function guardar() {
   localStorage.setItem("subs", JSON.stringify(subs));
   localStorage.setItem("ingresos", JSON.stringify(ingresos));
+  localStorage.setItem("meta", meta.toString());
 }
 
 // ================= DEV MODE =================
@@ -291,6 +292,10 @@ window.devTools = {
   fakeSubs: () => {
     subs.push({ nombre: "Netflix", precio: 5000, dia: 10 });
     subs.push({ nombre: "Spotify", precio: 3000, dia: 5 });
+    guardar(); render();
+  },
+  setMeta: (cantidad) => {
+    meta = cantidad;
     guardar(); render();
   }
 };
