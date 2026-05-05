@@ -199,3 +199,8 @@ function guardar(){
 }
 
 render();
+
+function usarHoy() {
+  let hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("ingFecha").value = hoy;
+}
