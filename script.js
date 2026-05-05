@@ -205,3 +205,20 @@ function usarHoy() {
   let hoy = new Date().toISOString().split("T")[0];
   document.getElementById("ingFecha").value = hoy;
 }
+
+let devKey = "";
+
+window.addEventListener("keydown", e => {
+  devKey += e.key.toLowerCase();
+
+  if (devKey.includes("dev")) {
+    devMode = !devMode;
+
+    document.getElementById("devPanel").style.display =
+      devMode ? "block" : "none";
+
+    alert(devMode ? "Modo desarrollador activado" : "Modo desarrollador desactivado");
+
+    devKey = "";
+  }
+});
