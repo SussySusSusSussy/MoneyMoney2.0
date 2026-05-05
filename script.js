@@ -166,7 +166,9 @@ function actualizarGrafica(){
 
   if(grafica) grafica.destroy();
 
-  grafica=new Chart(graficaEl.getContext("2d"),{
+ let ctx = document.getElementById("grafica").getContext("2d");
+
+grafica = new Chart(ctx, {
     type:"line",
     data:{
       labels:labels,
