@@ -148,7 +148,20 @@ function render(){
 
 // GRAFICA
 let grafica;
-function actualizarGrafica(){
+function actualizarGrafica(if (grafica) grafica.destroy();
+
+let ctx = document.getElementById("grafica").getContext("2d");
+
+grafica = new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [
+      { label: "Dinero", data: valores, tension: 0.2 },
+      { label: "Meta", data: labels.map(()=>convertir(meta)), borderDash:[5,5] }
+    ]
+  }
+});){
 
   let datos = [...ingresos].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
 
