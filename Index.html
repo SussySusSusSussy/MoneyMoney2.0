@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sistema Financiero</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<h1>Panel Financiero</h1>
+
+<!-- CONFIG -->
+<h2>Configuración</h2>
+
+<label>Moneda:</label>
+<select id="moneda">
+  <option value="CRC">Colones (₡)</option>
+  <option value="USD">Dólares ($)</option>
+</select>
+
+<p>Tipo de cambio: <span id="tc">Cargando...</span></p>
+
+<hr>
+
+<!-- SUSCRIPCIONES -->
+<h2>Agregar Suscripción</h2>
+<input id="subNombre" placeholder="Nombre">
+<input id="subPrecio" type="number" placeholder="USD">
+<input id="subDia" type="number" placeholder="Día">
+<button onclick="agregarSub()">Agregar</button>
+
+<h2>Suscripciones</h2>
+<table border="1">
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Precio</th>
+<th>Día</th>
+<th>Estado</th>
+<th>X</th>
+</tr>
+</thead>
+<tbody id="tablaSubs"></tbody>
+</table>
+
+<hr>
+
+<!-- INGRESOS -->
+<h2>Agregar Ingreso</h2>
+<input type="date" id="ingFecha">
+<input type="number" id="ingMonto">
+<button onclick="agregarIngreso()">Agregar</button>
+
+<h2>Historial</h2>
+<button onclick="resetMes()">Reset Mes</button>
+
+<table border="1">
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Monto</th>
+<th>X</th>
+</tr>
+</thead>
+<tbody id="tablaIngresos"></tbody>
+</table>
+
+<hr>
+
+<!-- RESUMEN -->
+<h2>Resumen</h2>
+<p>Total mes: <span id="totalMes"></span></p>
+<p>Fondo 5%: <span id="fondo"></span></p>
+<p>Disponible: <span id="disponible"></span></p>
+
+<hr>
+
+<h2>Gráfica</h2>
+<canvas id="grafica"></canvas>
+
+<script src="script.js"></script>
+<script src="secreto.js"></script>
+
+</body>
+</html>
