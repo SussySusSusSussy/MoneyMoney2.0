@@ -1,101 +1,120 @@
-let devMode = false;
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 
 let tipoCambio = 520;
 let moneda = localStorage.getItem("moneda") || "CRC";
 
-document.getElementById("moneda").value = moneda;
-
-// API
-async function obtenerTipoCambio() {
-  try {
-    let res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-    let data = await res.json();
-    tipoCambio = data.rates.CRC;
-    render();
-  } catch {
-    console.log("API error");
-  }
-}
-
-obtenerTipoCambio();
-setInterval(obtenerTipoCambio, 3600000);
+let grafica;
+let devMode = false;
 
 // MONEDA
+document.getElementById("moneda").value = moneda;
+
 document.getElementById("moneda").addEventListener("change", e=>{
   moneda = e.target.value;
   localStorage.setItem("moneda", moneda);
   render();
 });
 
-function convertir(v) {
-  return moneda === "USD" ? v / tipoCambio : v;
+function convertir(v){
+  return moneda==="USD"? v/tipoCambio : v;
 }
 
-function simbolo() {
-  return moneda === "USD" ? "$" : "₡";
+function simbolo(){
+  return moneda==="USD"?"$":"₡";
 }
 
-// SUS
-function agregarSub() {
-  let nombre = subNombre.value;
-  let precio = Number(subPrecio.value);
-  let dia = Number(subDia.value);
-  subs.push({nombre,precio,dia});
-  guardar(); render();
+// API
+async function obtenerTipoCambio(){
+  try{
+    let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+    let data=await res.json();
+    tipoCambio=data.rates.CRC;
+    render();
+  }catch{
+    console.log("API error");
+  }
 }
 
-function eliminarSub(i){ subs.splice(i,1); guardar(); render(); }
+obtenerTipoCambio();
+setInterval(obtenerTipoCambio,3600000);
+
+// FECHA AUTO (SIN LOOP)
+function usarHoy(){
+  let hoy=new Date().toISOString().split("T")[0];
+  document.getElementById("ingFecha").value=hoy;
+}
+usarHoy();
+
+// SUSCRIPCIONES
+function agregarSub(){
+  let n=subNombre.value;
+  let p=Number(subPrecio.value);
+  let d=Number(subDia.value);
+  if(!n||!p||!d)return;
+  subs.push({nombre:n,precio:p,dia:d});
+  guardar();render();
+}
+
+function eliminarSub(i){
+  subs.splice(i,1);
+  guardar();render();
+}
 
 // INGRESOS
 function agregarIngreso(){
-  ingresos.push({fecha:ingFecha.value, monto:Number(ingMonto.value)});
-  guardar(); render();
+  let f=ingFecha.value;
+  let m=Number(ingMonto.value);
+  if(!f||!m)return;
+  ingresos.push({fecha:f,monto:m});
+  guardar();render();
 }
 
-function eliminarIngreso(i){ ingresos.splice(i,1); guardar(); render(); }
+function eliminarIngreso(i){
+  ingresos.splice(i,1);
+  guardar();render();
+}
 
 function resetMes(){
   let h=new Date();
   ingresos=ingresos.filter(i=>{
     let f=new Date(i.fecha);
-    return f.getMonth()!=h.getMonth();
+    return f.getMonth()!=h.getMonth() || f.getFullYear()!=h.getFullYear();
   });
-  guardar(); render();
+  guardar();render();
 }
 
-// UTILS
+// CALCULOS
 function totalMes(){
   let h=new Date();
   return ingresos.filter(i=>{
     let f=new Date(i.fecha);
-    return f.getMonth()==h.getMonth();
+    return f.getMonth()==h.getMonth() && f.getFullYear()==h.getFullYear();
   }).reduce((a,b)=>a+b.monto,0);
 }
 
 function diasHasta(dia){
   let h=new Date();
   let f=new Date(h.getFullYear(),h.getMonth(),dia);
-  if(f<h) f=new Date(h.getFullYear(),h.getMonth()+1,dia);
+  if(f<h)f=new Date(h.getFullYear(),h.getMonth()+1,dia);
   return Math.ceil((f-h)/86400000);
 }
 
 // RENDER
 function render(){
 
-  document.getElementById("tc").textContent = tipoCambio.toFixed(2);
+  document.getElementById("tc").textContent=tipoCambio.toFixed(2);
 
-  let total = totalMes();
-  let fondo = total*0.05;
-  let disponible = total - fondo;
+  let total=totalMes();
+  let fondo=total*0.05;
+  let disponible=total-fondo;
 
   subs.sort((a,b)=>diasHasta(a.dia)-diasHasta(b.dia));
 
-  let tSubs="";
-  subs.forEach((s,i)=>{
+  let htmlSubs="";
 
-    let costo = s.precio * tipoCambio;
+  subs.forEach((s,i)=>{
+    let costo=s.precio*tipoCambio;
     let estado="Pendiente";
     let clase="";
 
@@ -103,68 +122,57 @@ function render(){
       disponible-=costo;
       estado="Cubierta";
       clase="verde";
-    } else {
+    }else{
       clase="rojo";
     }
 
     let d=diasHasta(s.dia);
-    if(d<=2) clase="rojo";
-    else if(d<=5) clase="amarillo";
+    if(d<=2)clase="rojo";
+    else if(d<=5)clase="amarillo";
 
-    tSubs+=`
+    htmlSubs+=`
     <tr class="${clase}">
-    <td>${s.nombre}</td>
-    <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
-    <td>${s.dia}</td>
-    <td>${estado}</td>
-    <td><button onclick="eliminarSub(${i})">X</button></td>
+      <td>${s.nombre}</td>
+      <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
+      <td>${s.dia}</td>
+      <td>${estado}</td>
+      <td><button onclick="eliminarSub(${i})">X</button></td>
     </tr>`;
   });
 
-  tablaSubs.innerHTML=tSubs;
+  tablaSubs.innerHTML=htmlSubs;
 
-  let tIng="";
+  let htmlIng="";
   ingresos.forEach((i,idx)=>{
-    tIng+=`
+    htmlIng+=`
     <tr>
-    <td>${i.fecha}</td>
-    <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-    <td><button onclick="eliminarIngreso(${idx})">X</button></td>
+      <td>${i.fecha}</td>
+      <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
+      <td><button onclick="eliminarIngreso(${idx})">X</button></td>
     </tr>`;
   });
 
-  tablaIngresos.innerHTML=tIng;
+  tablaIngresos.innerHTML=htmlIng;
 
-  totalMesEl = document.getElementById("totalMes");
-  fondoEl = document.getElementById("fondo");
-  dispEl = document.getElementById("disponible");
-
-  totalMesEl.textContent = simbolo()+convertir(total).toFixed(2);
-  fondoEl.textContent = simbolo()+convertir(fondo).toFixed(2);
-  dispEl.textContent = simbolo()+convertir(disponible).toFixed(2);
+  totalMesEl.textContent=simbolo()+convertir(total).toFixed(2);
+  fondoEl.textContent=simbolo()+convertir(fondo).toFixed(2);
+  disponibleEl.textContent=simbolo()+convertir(disponible).toFixed(2);
 
   actualizarGrafica();
+
+  if(devMode){
+    devTC.textContent=tipoCambio.toFixed(2);
+    devTotal.textContent=total.toFixed(2);
+    devDisponible.textContent=disponible.toFixed(2);
+  }
+
   guardar();
 }
 
 // GRAFICA
-let grafica;
-function actualizarGrafica(if (grafica) grafica.destroy();
+function actualizarGrafica(){
 
-let ctx = document.getElementById("grafica").getContext("2d");
-
-grafica = new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: labels,
-    datasets: [
-      { label: "Dinero", data: valores, tension: 0.2 },
-      { label: "Meta", data: labels.map(()=>convertir(meta)), borderDash:[5,5] }
-    ]
-  }
-});){
-
-  let datos = [...ingresos].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  let datos=[...ingresos].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
 
   let labels=[];
   let valores=[];
@@ -178,11 +186,11 @@ grafica = new Chart(ctx, {
 
   let meta=20000;
 
-  if(grafica) grafica.destroy();
+  if(grafica)grafica.destroy();
 
- let ctx = document.getElementById("grafica").getContext("2d");
+  let ctx=document.getElementById("grafica").getContext("2d");
 
-grafica = new Chart(ctx, {
+  grafica=new Chart(ctx,{
     type:"line",
     data:{
       labels:labels,
@@ -194,46 +202,39 @@ grafica = new Chart(ctx, {
   });
 }
 
+// DEV MODE
+let key="";
+window.addEventListener("keydown",e=>{
+  key+=e.key.toLowerCase();
+  if(key.includes("dev")){
+    devMode=!devMode;
+    devPanel.style.display=devMode?"block":"none";
+    key="";
+  }
+});
+
+function forzarAPI(){ obtenerTipoCambio(); }
+
+function resetTodo(){
+  if(confirm("BORRAR TODO?")){
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+// STORAGE
 function guardar(){
   localStorage.setItem("subs",JSON.stringify(subs));
   localStorage.setItem("ingresos",JSON.stringify(ingresos));
 }
 
-render(if (devMode) {
-  document.getElementById("devTC").textContent = tipoCambio.toFixed(2);
-  document.getElementById("devTotal").textContent = total.toFixed(2);
-  document.getElementById("devDisponible").textContent = disponible.toFixed(2);
-});
+function render(){
 
-function usarHoy() {
-  let hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("ingFecha").value = hoy;
-}
+  document.getElementById("tc").textContent = tipoCambio.toFixed(2);
 
-let devKey = "";
+  let total = totalMes();
+  let fondo = total * 0.05;
+  let disponible = total - fondo;
 
-window.addEventListener("keydown", e => {
-  devKey += e.key.toLowerCase();
-
-  if (devKey.includes("dev")) {
-    devMode = !devMode;
-
-    document.getElementById("devPanel").style.display =
-      devMode ? "block" : "none";
-
-    alert(devMode ? "Modo desarrollador activado" : "Modo desarrollador desactivado");
-
-    devKey = "";
-  }
-});
-
-function forzarAPI() {
-  obtenerTipoCambio();
-}
-
-function resetTodo() {
-  if (confirm("¿Seguro? BORRA TODO")) {
-    localStorage.clear();
-    location.reload();
-  }
+  // ... más código
 }
