@@ -1,3 +1,4 @@
+let devMode = false;
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 
