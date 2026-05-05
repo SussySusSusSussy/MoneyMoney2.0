@@ -5,7 +5,6 @@
 <title>Sistema Financiero</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<link rel="stylesheet" href="style.css">
 
 </head>
 <body>
@@ -15,24 +14,23 @@
 <!-- CONFIG -->
 <h2>Configuración</h2>
 
-<label>Moneda:</label>
 <select id="moneda">
   <option value="CRC">Colones (₡)</option>
   <option value="USD">Dólares ($)</option>
 </select>
 
-<p>Tipo de cambio: <span id="tc">Cargando...</span></p>
+<p>Tipo de cambio: <span id="tc">...</span></p>
 
 <hr>
 
 <!-- SUSCRIPCIONES -->
-<h2>Agregar Suscripción</h2>
+<h2>Suscripciones</h2>
+
 <input id="subNombre" placeholder="Nombre">
 <input id="subPrecio" type="number" placeholder="USD">
 <input id="subDia" type="number" placeholder="Día">
 <button onclick="agregarSub()">Agregar</button>
 
-<h2>Suscripciones</h2>
 <table border="1">
 <thead>
 <tr>
@@ -49,13 +47,12 @@
 <hr>
 
 <!-- INGRESOS -->
-<h2>Agregar Ingreso</h2>
+<h2>Ingresos</h2>
+
 <input type="date" id="ingFecha">
-<button onclick="usarHoy()">Hoy</button>
 <input type="number" id="ingMonto">
 <button onclick="agregarIngreso()">Agregar</button>
 
-<h2>Historial</h2>
 <button onclick="resetMes()">Reset Mes</button>
 
 <table border="1">
@@ -73,7 +70,8 @@
 
 <!-- RESUMEN -->
 <h2>Resumen</h2>
-<p>Total mes: <span id="totalMes"></span></p>
+
+<p>Total: <span id="totalMes"></span></p>
 <p>Fondo 5%: <span id="fondo"></span></p>
 <p>Disponible: <span id="disponible"></span></p>
 
@@ -82,19 +80,17 @@
 <h2>Gráfica</h2>
 <canvas id="grafica"></canvas>
 
-<script src="script.js"></script>
-<script src="secreto.js"></script>
-
-</body>
-</html>
-
-<div id="devPanel" style="display:none; border:2px solid red; padding:10px; margin-top:20px;">
-  <h2>Modo Desarrollador</h2>
-
-  <p>Tipo de cambio: <span id="devTC"></span></p>
-  <p>Total ingresos: <span id="devTotal"></span></p>
+<!-- DEV PANEL -->
+<div id="devPanel" style="display:none; border:2px solid red; padding:10px;">
+  <h3>DEV MODE</h3>
+  <p>TC: <span id="devTC"></span></p>
+  <p>Total: <span id="devTotal"></span></p>
   <p>Disponible: <span id="devDisponible"></span></p>
-
   <button onclick="forzarAPI()">Forzar API</button>
   <button onclick="resetTodo()">RESET TODO</button>
 </div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
