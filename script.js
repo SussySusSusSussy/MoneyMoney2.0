@@ -1,247 +1,310 @@
-const tablaSubs = document.getElementById("tablaSubs");
-const tablaIngresos = document.getElementById("tablaIngresos");
-
-const totalMesEl = document.getElementById("totalMes");
-const fondoEl = document.getElementById("fondo");
-const disponibleEl = document.getElementById("disponible");
-
-const devPanel = document.getElementById("devPanel");
-const devTC = document.getElementById("devTC");
-const devTotal = document.getElementById("devTotal");
-const devDisponible = document.getElementById("devDisponible");
-
-const ingFecha = document.getElementById("ingFecha");
-const ingMonto = document.getElementById("ingMonto");
-
-const subNombre = document.getElementById("subNombre");
-const subPrecio = document.getElementById("subPrecio");
-const subDia = document.getElementById("subDia");
+clet devMode = false;
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 
 let tipoCambio = 520;
 let moneda = localStorage.getItem("moneda") || "CRC";
 
-let grafica;
-let devMode = false;
-
-// MONEDA
 document.getElementById("moneda").value = moneda;
 
-document.getElementById("moneda").addEventListener("change", e=>{
-  moneda = e.target.value;
-  localStorage.setItem("moneda", moneda);
-  render();
-});
-
-function convertir(v){
-  return moneda==="USD"? v/tipoCambio : v;
-}
-
-function simbolo(){
-  return moneda==="USD"?"$":"₡";
-}
-
-// API
-async function obtenerTipoCambio(){
-  try{
-    let res=await fetch("https://api.exchangerate-api.com/v4/latest/USD");
-    let data=await res.json();
-    tipoCambio=data.rates.CRC;
+// ================= API =================
+async function obtenerTipoCambio() {
+  try {
+    let res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+    let data = await res.json();
+    tipoCambio = data.rates.CRC;
     render();
-  }catch{
+  } catch {
     console.log("API error");
   }
 }
 
 obtenerTipoCambio();
-setInterval(obtenerTipoCambio,3600000);
+setInterval(obtenerTipoCambio, 3600000);
 
-// FECHA AUTO (SIN LOOP)
-function usarHoy(){
-  let hoy=new Date().toISOString().split("T")[0];
-  document.getElementById("ingFecha").value=hoy;
-}
-usarHoy();
+// ================= MONEDA =================
+document.getElementById("moneda").addEventListener("change", e => {
+  moneda = e.target.value;
+  localStorage.setItem("moneda", moneda);
+  render();
+});
 
-// SUSCRIPCIONES
-function agregarSub(){
-  let n=subNombre.value;
-  let p=Number(subPrecio.value);
-  let d=Number(subDia.value);
-  if(!n||!p||!d)return;
-  subs.push({nombre:n,precio:p,dia:d});
-  guardar();render();
+function convertir(v) {
+  return moneda === "USD" ? v / tipoCambio : v;
 }
 
-function eliminarSub(i){
-  subs.splice(i,1);
-  guardar();render();
+function simbolo() {
+  return moneda === "USD" ? "$" : "₡";
 }
 
-// INGRESOS
-function agregarIngreso(){
-  let f=ingFecha.value;
-  let m=Number(ingMonto.value);
-  if(!f||!m)return;
-  ingresos.push({fecha:f,monto:m});
-  guardar();render();
+// ================= SUS =================
+function agregarSub() {
+  let nombre = subNombre.value;
+  let precio = Number(subPrecio.value);
+  let dia = Number(subDia.value);
+
+  if (!nombre || !precio || !dia) return;
+
+  subs.push({ nombre, precio, dia });
+  guardar(); render();
 }
 
-function eliminarIngreso(i){
-  ingresos.splice(i,1);
-  guardar();render();
+function eliminarSub(i) {
+  subs.splice(i, 1);
+  guardar(); render();
 }
 
-function resetMes(){
-  let h=new Date();
-  ingresos=ingresos.filter(i=>{
-    let f=new Date(i.fecha);
-    return f.getMonth()!=h.getMonth() || f.getFullYear()!=h.getFullYear();
+// ================= INGRESOS =================
+function agregarIngreso() {
+  if (!ingFecha.value || !ingMonto.value) return;
+
+  ingresos.push({
+    fecha: ingFecha.value,
+    monto: Number(ingMonto.value)
   });
-  guardar();render();
+
+  guardar(); render();
 }
 
-// CALCULOS
-function totalMes(){
-  let h=new Date();
-  return ingresos.filter(i=>{
-    let f=new Date(i.fecha);
-    return f.getMonth()==h.getMonth() && f.getFullYear()==h.getFullYear();
-  }).reduce((a,b)=>a+b.monto,0);
+function eliminarIngreso(i) {
+  ingresos.splice(i, 1);
+  guardar(); render();
 }
 
-function diasHasta(dia){
-  let h=new Date();
-  let f=new Date(h.getFullYear(),h.getMonth(),dia);
-  if(f<h)f=new Date(h.getFullYear(),h.getMonth()+1,dia);
-  return Math.ceil((f-h)/86400000);
+function resetMes() {
+  let h = new Date();
+  ingresos = ingresos.filter(i => {
+    let f = new Date(i.fecha);
+    return f.getMonth() != h.getMonth();
+  });
+  guardar(); render();
 }
 
-// RENDER
-function render(){
+// 👉 BOTÓN HOY
+function ponerFechaHoy() {
+  let hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("ingFecha").value = hoy;
+}
 
-  document.getElementById("tc").textContent=tipoCambio.toFixed(2);
+// ================= UTILS =================
+function totalMes() {
+  let h = new Date();
+  return ingresos.filter(i => {
+    let f = new Date(i.fecha);
+    return f.getMonth() == h.getMonth();
+  }).reduce((a, b) => a + b.monto, 0);
+}
 
-  let total=totalMes();
-  let fondo=total*0.05;
-  let disponible=total-fondo;
+function diasHasta(dia) {
+  let h = new Date();
+  let f = new Date(h.getFullYear(), h.getMonth(), dia);
+  if (f < h) f = new Date(h.getFullYear(), h.getMonth() + 1, dia);
+  return Math.ceil((f - h) / 86400000);
+}
 
-  subs.sort((a,b)=>diasHasta(a.dia)-diasHasta(b.dia));
+// ================= RENDER =================
+function render() {
 
-  let htmlSubs="";
+  document.getElementById("tc").textContent = tipoCambio.toFixed(2);
 
-  subs.forEach((s,i)=>{
-    let costo=s.precio*tipoCambio;
-    let estado="Pendiente";
-    let clase="";
+  let total = totalMes();
+  let fondo = total * 0.05;
+  let disponible = total - fondo;
 
-    if(disponible>=costo){
-      disponible-=costo;
-      estado="Cubierta";
-      clase="verde";
-    }else{
-      clase="rojo";
+  subs.sort((a, b) => diasHasta(a.dia) - diasHasta(b.dia));
+
+  let tSubs = "";
+
+  let disponibleTemp = disponible;
+
+  subs.forEach((s, i) => {
+
+    let costo = s.precio * tipoCambio;
+    let estado = "Pendiente";
+    let clase = "";
+
+    if (disponibleTemp >= costo) {
+      disponibleTemp -= costo;
+      estado = "Cubierta";
+      clase = "verde";
+    } else {
+      clase = "rojo";
     }
 
-    let d=diasHasta(s.dia);
-    if(d<=2)clase="rojo";
-    else if(d<=5)clase="amarillo";
+    let d = diasHasta(s.dia);
+    if (d <= 2) clase = "rojo";
+    else if (d <= 5) clase = "amarillo";
 
-    htmlSubs+=`
+    tSubs += `
     <tr class="${clase}">
-      <td>${s.nombre}</td>
-      <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
-      <td>${s.dia}</td>
-      <td>${estado}</td>
-      <td><button onclick="eliminarSub(${i})">X</button></td>
+    <td>${s.nombre}</td>
+    <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
+    <td>${s.dia}</td>
+    <td>${estado}</td>
+    <td><button onclick="eliminarSub(${i})">X</button></td>
     </tr>`;
   });
 
-  tablaSubs.innerHTML=htmlSubs;
+  tablaSubs.innerHTML = tSubs;
 
-  let htmlIng="";
-  ingresos.forEach((i,idx)=>{
-    htmlIng+=`
+  // ================= INGRESOS (7 DÍAS) =================
+  let hoy = new Date();
+
+  let ingresosFiltrados = ingresos.filter(i => {
+    let f = new Date(i.fecha);
+    let diff = (hoy - f) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  });
+
+  let tIng = "";
+
+  ingresosFiltrados.forEach((i, idx) => {
+    tIng += `
     <tr>
-      <td>${i.fecha}</td>
-      <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-      <td><button onclick="eliminarIngreso(${idx})">X</button></td>
+    <td>${i.fecha}</td>
+    <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
+    <td><button onclick="eliminarIngreso(${idx})">X</button></td>
     </tr>`;
   });
 
-  tablaIngresos.innerHTML=htmlIng;
+  tablaIngresos.innerHTML = tIng;
 
-  totalMesEl.textContent=simbolo()+convertir(total).toFixed(2);
-  fondoEl.textContent=simbolo()+convertir(fondo).toFixed(2);
-  disponibleEl.textContent=simbolo()+convertir(disponible).toFixed(2);
+  // ================= RESUMEN =================
+  totalMesEl = document.getElementById("totalMes");
+  fondoEl = document.getElementById("fondo");
+  dispEl = document.getElementById("disponible");
 
-  actualizarGrafica();
+  totalMesEl.textContent = simbolo() + convertir(total).toFixed(2);
+  fondoEl.textContent = simbolo() + convertir(fondo).toFixed(2);
+  dispEl.textContent = simbolo() + convertir(disponible).toFixed(2);
 
-  if(devMode){
-    devTC.textContent=tipoCambio.toFixed(2);
-    devTotal.textContent=total.toFixed(2);
-    devDisponible.textContent=disponible.toFixed(2);
+  // 👉 FALTA / SOBRA
+  let totalSubs = subs.reduce((acc, s) => acc + (s.precio * tipoCambio), 0);
+  let diferencia = total - totalSubs;
+
+  let estadoEl = document.getElementById("estadoDinero");
+
+  if (estadoEl) {
+    if (diferencia >= 0) {
+      estadoEl.textContent = `Te sobran ${simbolo()}${convertir(diferencia).toFixed(2)}`;
+      estadoEl.style.color = "lime";
+    } else {
+      estadoEl.textContent = `Te faltan ${simbolo()}${convertir(Math.abs(diferencia)).toFixed(2)}`;
+      estadoEl.style.color = "red";
+    }
   }
 
+  // 👉 TOTAL 7 DÍAS
+  let total7 = ingresosFiltrados.reduce((a, b) => a + b.monto, 0);
+  let t7el = document.getElementById("total7dias");
+
+  if (t7el) {
+    t7el.textContent = `Últimos 7 días: ${simbolo()}${convertir(total7).toFixed(2)}`;
+  }
+
+  actualizarGrafica();
   guardar();
+
+  // 👉 DEV PANEL
+  if (devMode) {
+    document.getElementById("devTC").textContent = tipoCambio.toFixed(2);
+    document.getElementById("devTotal").textContent = total.toFixed(2);
+    document.getElementById("devDisponible").textContent = disponible.toFixed(2);
+  }
 }
 
-// GRAFICA
-function actualizarGrafica(){
+// ================= GRAFICA =================
+let grafica;
 
-  let datos=[...ingresos].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+function actualizarGrafica() {
 
-  let labels=[];
-  let valores=[];
-  let acum=0;
+  let datos = [...ingresos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-  datos.forEach(i=>{
-    acum+=i.monto;
+  let labels = [];
+  let valores = [];
+  let acum = 0;
+
+  datos.forEach(i => {
+    acum += i.monto;
     labels.push(i.fecha);
     valores.push(convertir(acum));
   });
 
-  let meta=20000;
+  let meta = 20000;
 
-  if(grafica)grafica.destroy();
+  if (grafica) grafica.destroy();
 
-  let ctx=document.getElementById("grafica").getContext("2d");
+  let ctx = document.getElementById("grafica").getContext("2d");
 
-  grafica=new Chart(ctx,{
-    type:"line",
-    data:{
-      labels:labels,
-      datasets:[
-        {label:"Dinero",data:valores,tension:0.2},
-        {label:"Meta",data:labels.map(()=>convertir(meta)),borderDash:[5,5]}
+  grafica = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        { label: "Dinero", data: valores, tension: 0.2 },
+        { label: "Meta", data: labels.map(() => convertir(meta)), borderDash: [5, 5] }
       ]
     }
   });
 }
 
-// DEV MODE
-let key="";
-window.addEventListener("keydown",e=>{
-  key+=e.key.toLowerCase();
-  if(key.includes("dev")){
-    devMode=!devMode;
-    devPanel.style.display=devMode?"block":"none";
-    key="";
+// ================= GUARDAR =================
+function guardar() {
+  localStorage.setItem("subs", JSON.stringify(subs));
+  localStorage.setItem("ingresos", JSON.stringify(ingresos));
+}
+
+// ================= DEV MODE =================
+let devKey = "";
+
+window.addEventListener("keydown", e => {
+  devKey += e.key.toLowerCase();
+
+  if (devKey.includes("devmode")) {
+    devMode = !devMode;
+
+    document.getElementById("devPanel").style.display =
+      devMode ? "block" : "none";
+
+    alert(devMode ? "DEV MODE ACTIVADO 😎" : "DEV MODE OFF");
+
+    devKey = "";
   }
 });
 
-function forzarAPI(){ obtenerTipoCambio(); }
+// 👉 herramientas pro
+window.devTools = {
+  addMoney: (cantidad) => {
+    ingresos.push({
+      fecha: new Date().toISOString().split("T")[0],
+      monto: cantidad
+    });
+    guardar(); render();
+  },
+  godMode: () => {
+    ingresos.push({
+      fecha: new Date().toISOString().split("T")[0],
+      monto: 9999999
+    });
+    guardar(); render();
+  },
+  fakeSubs: () => {
+    subs.push({ nombre: "Netflix", precio: 5000, dia: 10 });
+    subs.push({ nombre: "Spotify", precio: 3000, dia: 5 });
+    guardar(); render();
+  }
+};
 
-function resetTodo(){
-  if(confirm("BORRAR TODO?")){
+function forzarAPI() {
+  obtenerTipoCambio();
+}
+
+function resetTodo() {
+  if (confirm("¿Seguro? BORRA TODO")) {
     localStorage.clear();
     location.reload();
   }
 }
 
-// STORAGE
-function guardar(){
-  localStorage.setItem("subs",JSON.stringify(subs));
-  localStorage.setItem("ingresos",JSON.stringify(ingresos));
-}
+// ================= INIT =================
+render();
