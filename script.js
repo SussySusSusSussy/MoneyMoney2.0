@@ -226,3 +226,14 @@ window.addEventListener("keydown", e => {
     devKey = "";
   }
 });
+
+function forzarAPI() {
+  obtenerTipoCambio();
+}
+
+function resetTodo() {
+  if (confirm("¿Seguro? BORRA TODO")) {
+    localStorage.clear();
+    location.reload();
+  }
+}
