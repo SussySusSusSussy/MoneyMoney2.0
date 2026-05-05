@@ -199,7 +199,11 @@ function guardar(){
   localStorage.setItem("ingresos",JSON.stringify(ingresos));
 }
 
-render();
+render(if (devMode) {
+  document.getElementById("devTC").textContent = tipoCambio.toFixed(2);
+  document.getElementById("devTotal").textContent = total.toFixed(2);
+  document.getElementById("devDisponible").textContent = disponible.toFixed(2);
+});
 
 function usarHoy() {
   let hoy = new Date().toISOString().split("T")[0];
