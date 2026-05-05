@@ -1,3 +1,21 @@
+const tablaSubs = document.getElementById("tablaSubs");
+const tablaIngresos = document.getElementById("tablaIngresos");
+
+const totalMesEl = document.getElementById("totalMes");
+const fondoEl = document.getElementById("fondo");
+const disponibleEl = document.getElementById("disponible");
+
+const devPanel = document.getElementById("devPanel");
+const devTC = document.getElementById("devTC");
+const devTotal = document.getElementById("devTotal");
+const devDisponible = document.getElementById("devDisponible");
+
+const ingFecha = document.getElementById("ingFecha");
+const ingMonto = document.getElementById("ingMonto");
+
+const subNombre = document.getElementById("subNombre");
+const subPrecio = document.getElementById("subPrecio");
+const subDia = document.getElementById("subDia");
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 
@@ -226,15 +244,4 @@ function resetTodo(){
 function guardar(){
   localStorage.setItem("subs",JSON.stringify(subs));
   localStorage.setItem("ingresos",JSON.stringify(ingresos));
-}
-
-function render(){
-
-  document.getElementById("tc").textContent = tipoCambio.toFixed(2);
-
-  let total = totalMes();
-  let fondo = total * 0.05;
-  let disponible = total - fondo;
-
-  // ... más código
 }
