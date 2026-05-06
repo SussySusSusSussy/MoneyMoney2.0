@@ -157,6 +157,11 @@ function render() {
     return diff <= 7 && diff >= 0;
   });
 
+  // Limitar visualmente a últimos 20 registros
+  ingresosFiltrados = ingresosFiltrados
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)) // más recientes primero
+    .slice(0, 20);
+
   let tIng = "";
 
   ingresosFiltrados.forEach((i) => {
