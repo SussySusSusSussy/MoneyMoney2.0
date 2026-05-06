@@ -72,8 +72,10 @@ function agregarSub() {
 }
 
 function eliminarSub(i) {
-  subs.splice(i, 1);
-  guardar(); render();
+  if (confirm("¿Eliminar esta suscripción?")) {
+    subs.splice(i, 1);
+    guardar(); render();
+  }
 }
 
 // ================= INGRESOS =================
@@ -94,20 +96,9 @@ function agregarIngreso() {
   guardar(); render();
 }
 
-function eliminarIngreso(idx) {
-  // Find the actual index in the full ingresos array
-  let hoy = new Date();
-  let ingresosFiltrados = ingresos.filter(i => {
-    let f = new Date(i.fecha);
-    let diff = (hoy - f) / (1000 * 60 * 60 * 24);
-    return diff <= 7;
-  }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
-
-  let ingresoAEliminar = ingresosFiltrados[idx];
-  let indiceReal = ingresos.indexOf(ingresoAEliminar);
-  
-  if (indiceReal !== -1) {
-    ingresos.splice(indiceReal, 1);
+function eliminarIngreso(originalIdx) {
+  if (confirm("¿Eliminar este ingreso?")) {
+    ingresos.splice(originalIdx, 1);
     guardar(); render();
   }
 }
@@ -146,8 +137,10 @@ function bloquearDia() {
 }
 
 function eliminarBloqueado(i) {
-  diasSinIngreso.splice(i, 1);
-  guardar(); render();
+  if (confirm("¿Desbloquear este día?")) {
+    diasSinIngreso.splice(i, 1);
+    guardar(); render();
+  }
 }
 
 // ================= UTILS =================
@@ -189,9 +182,10 @@ function render() {
 
     if (disponibleTemp >= costo) {
       disponibleTemp -= costo;
-      estado = "Cubierta";
+      estado = "✅ Cubierta";
       clase = "verde";
     } else {
+      estado = "❌ Pendiente";
       clase = "rojo";
     }
 
@@ -226,12 +220,14 @@ function render() {
 
   let tIng = "";
 
+  // Map filtered ingreso back to original index
   ingresosFiltrados.forEach((i, idx) => {
+    let originalIdx = ingresos.indexOf(i);
     tIng += `
     <tr>
       <td>${i.fecha}</td>
       <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-      <td><button class="btn-delete" onclick="eliminarIngreso(${idx})" aria-label="Eliminar ingreso">✕</button></td>
+      <td><button class="btn-delete" onclick="eliminarIngreso(${originalIdx})" aria-label="Eliminar ingreso">✕</button></td>
     </tr>`;
   });
 
@@ -274,7 +270,8 @@ function render() {
   let diasActivos = diasMes - diasSinIngreso.length;
   if (diasActivos <= 0) diasActivos = 1;
 
-  let objetivoDiario = totalSubs / diasActivos;
+  let metaEnCRC = metaMensual * tipoCambio;
+  let objetivoDiario = metaEnCRC / diasActivos;
 
   let ingresoPromedio = total > 0 ? total / new Date().getDate() : 0;
   let proyeccion = ingresoPromedio * diasActivos;
@@ -282,10 +279,10 @@ function render() {
   let estadoPlan = "";
   let colorPlan = "";
 
-  if (proyeccion >= totalSubs * 1.2) {
+  if (proyeccion >= metaEnCRC * 1.2) {
     estadoPlan = "Vas sobrado 😎";
     colorPlan = "lime";
-  } else if (proyeccion >= totalSubs) {
+  } else if (proyeccion >= metaEnCRC) {
     estadoPlan = "Vas justo 😐";
     colorPlan = "orange";
   } else {
@@ -413,7 +410,7 @@ function actualizarGrafica() {
 function toggleDark() {
   document.body.classList.toggle("dark");
   localStorage.setItem("darkMode", document.body.classList.contains("dark"));
-  render();
+  if (grafica) actualizarGrafica();
 }
 
 // Load dark mode preference
@@ -455,7 +452,10 @@ window.devTools = {
   }
 };
 
-function forzarAPI() { obtenerTipoCambio(); }
+function forzarAPI() { 
+  obtenerTipoCambio();
+  alert("API actualizada!");
+}
 
 function resetTodo() {
   if (confirm("⚠️ BORRA TODO - Esta acción no se puede deshacer")) {
