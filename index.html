@@ -2,99 +2,165 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistema Financiero</title>
 <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<h1>Panel Financiero</h1>
-<button onclick="toggleDark()">🌙 / ☀️</button>
-  
-<!-- CONFIG -->
-<h2>Configuración</h2>
+<div class="container">
+  <header class="header">
+    <h1>Panel Financiero</h1>
+    <button class="theme-toggle" onclick="toggleDark()" aria-label="Toggle dark mode">🌙 / ☀️</button>
+  </header>
 
-<select id="moneda">
-  <option value="CRC">Colones (₡)</option>
-  <option value="USD">Dólares ($)</option>
-</select>
+  <!-- CONFIG -->
+  <section class="section">
+    <h2>Configuración</h2>
+    <div class="config-grid">
+      <div>
+        <label for="moneda">Moneda:</label>
+        <select id="moneda" aria-label="Seleccionar moneda">
+          <option value="CRC">Colones (₡)</option>
+          <option value="USD">Dólares ($)</option>
+        </select>
+      </div>
+      <div>
+        <p>Tipo de cambio: <span id="tc" class="highlight">...</span></p>
+      </div>
+    </div>
+  </section>
 
-<p>Tipo de cambio: <span id="tc">...</span></p>
+  <hr>
 
-<hr>
+  <!-- META/OBJETIVO -->
+  <section class="section">
+    <h2>Meta Mensual 🎯</h2>
+    <div class="goal-container">
+      <label for="metaInput">Meta (USD):</label>
+      <input id="metaInput" type="number" min="0" step="1" aria-label="Meta mensual en USD">
+      <button onclick="actualizarMeta()" class="btn-primary">Guardar</button>
+      <p>Meta actual: <span id="metaActual" class="highlight">$0</span></p>
+    </div>
+  </section>
 
-<!-- SUSCRIPCIONES -->
-<h2>Suscripciones</h2>
+  <hr>
 
-<input id="subNombre" placeholder="Nombre">
-<input id="subPrecio" type="number" placeholder="USD">
-<input id="subDia" type="number" placeholder="Día">
-<button onclick="agregarSub()">Agregar</button>
+  <!-- SUSCRIPCIONES -->
+  <section class="section">
+    <h2>Suscripciones</h2>
+    <div class="input-group">
+      <input id="subNombre" placeholder="Nombre" aria-label="Nombre de suscripción">
+      <input id="subPrecio" type="number" placeholder="USD" aria-label="Precio en USD">
+      <input id="subDia" type="number" placeholder="Día (1-31)" min="1" max="31" aria-label="Día del mes">
+      <button onclick="agregarSub()" class="btn-primary">Agregar</button>
+    </div>
 
-<table border="1">
-<thead>
-<tr>
-<th>Nombre</th>
-<th>Precio</th>
-<th>Día</th>
-<th>Estado</th>
-<th>X</th>
-</tr>
-</thead>
-<tbody id="tablaSubs"></tbody>
-</table>
+    <table class="data-table" role="grid">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Día</th>
+          <th>Estado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaSubs"></tbody>
+    </table>
+  </section>
 
-<hr>
+  <hr>
 
-<!-- INGRESOS -->
-<h2>Ingresos</h2>
+  <!-- INGRESOS -->
+  <section class="section">
+    <h2>Ingresos</h2>
+    <div class="input-group">
+      <input type="date" id="ingFecha" aria-label="Fecha del ingreso">
+      <button onclick="ponerFechaHoy()" class="btn-secondary">Hoy</button>
 
-<input type="date" id="ingFecha">
-<button onclick="ponerFechaHoy()">Hoy</button>
+      <input type="number" id="ingMonto" placeholder="Monto" aria-label="Monto del ingreso">
+      <button onclick="agregarIngreso()" class="btn-primary">Agregar</button>
 
-<input type="number" id="ingMonto">
-<button onclick="agregarIngreso()">Agregar</button>
+      <button onclick="resetMes()" class="btn-danger">Reset Mes</button>
+    </div>
 
-<button onclick="resetMes()">Reset Mes</button>
+    <table class="data-table" role="grid">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Monto</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaIngresos"></tbody>
+    </table>
+    <p id="total7dias" class="info-text"></p>
+  </section>
 
-<table border="1">
-<thead>
-<tr>
-<th>Fecha</th>
-<th>Monto</th>
-<th>X</th>
-</tr>
-</thead>
-<tbody id="tablaIngresos"></tbody>
-</table>
-<p id="total7dias"></p>
-  
-<hr>
+  <hr>
 
-<!-- RESUMEN -->
-<h2>Resumen</h2>
+  <!-- RESUMEN -->
+  <section class="section">
+    <h2>Resumen</h2>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <strong>Total Mes:</strong>
+        <span id="totalMes" class="highlight">₡0</span>
+      </div>
+      <div class="summary-item">
+        <strong id="estadoDinero"></strong>
+      </div>
+      <div class="summary-item">
+        <strong>Fondo 5%:</strong>
+        <span id="fondo" class="highlight">₡0</span>
+      </div>
+      <div class="summary-item">
+        <strong>Disponible:</strong>
+        <span id="disponible" class="highlight">₡0</span>
+      </div>
+      <div class="summary-item">
+        <strong id="objetivoDiario"></strong>
+      </div>
+      <div class="summary-item" id="estadoPlanContainer">
+        <strong>Plan:</strong>
+        <span id="estadoPlan"></span>
+      </div>
+      <div class="summary-item">
+        <strong id="cobertura"></strong>
+      </div>
+    </div>
+  </section>
 
-<p>Total: <span id="totalMes"></span></p>
-<p id="estadoDinero"></p>
-<p>Fondo 5%: <span id="fondo"></span></p>
-<p>Disponible: <span id="disponible"></span></p>
-<p id="objetivoDiario"></p>
-<p id="estadoPlan"></p>
-<p id="cobertura"></p>
-<hr>
+  <hr>
 
-<h2>Gráfica</h2>
-<canvas id="grafica"></canvas>
+  <!-- DÍAS SIN INGRESO -->
+  <section class="section">
+    <h2>Días Sin Ingreso (Bloqueados)</h2>
+    <div class="input-group">
+      <input type="date" id="fechaBloqueada" aria-label="Fecha a bloquear">
+      <button onclick="bloquearDia()" class="btn-primary">Bloquear</button>
+    </div>
+    <ul id="listaBloqueados" class="blocked-list"></ul>
+  </section>
 
-<!-- DEV PANEL -->
-<div id="devPanel" style="display:none; border:2px solid red; padding:10px;">
-  <h3>DEV MODE</h3>
-  <p>TC: <span id="devTC"></span></p>
-  <p>Total: <span id="devTotal"></span></p>
-  <p>Disponible: <span id="devDisponible"></span></p>
-  <button onclick="forzarAPI()">Forzar API</button>
-  <button onclick="resetTodo()">RESET TODO</button>
+  <hr>
+
+  <h2>Gráfica</h2>
+  <div class="chart-container">
+    <canvas id="grafica"></canvas>
+  </div>
+
+  <!-- DEV PANEL -->
+  <div id="devPanel" class="dev-panel">
+    <h3>DEV MODE</h3>
+    <p>TC: <span id="devTC"></span></p>
+    <p>Total: <span id="devTotal"></span></p>
+    <p>Disponible: <span id="devDisponible"></span></p>
+    <button onclick="forzarAPI()" class="btn-secondary">Forzar API</button>
+    <button onclick="resetTodo()" class="btn-danger">RESET TODO</button>
+  </div>
 </div>
 
 <script src="script.js"></script>
