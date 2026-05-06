@@ -3,11 +3,13 @@ let devMode = false;
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
 let diasSinIngreso = JSON.parse(localStorage.getItem("diasSinIngreso")) || [];
+let metaMensual = JSON.parse(localStorage.getItem("metaMensual")) || 0;
 
 let tipoCambio = 520;
 let moneda = localStorage.getItem("moneda") || "CRC";
 
 document.getElementById("moneda").value = moneda;
+document.getElementById("metaInput").value = metaMensual;
 
 // ================= API =================
 async function obtenerTipoCambio() {
@@ -37,15 +39,34 @@ function simbolo() {
   return moneda === "USD" ? "$" : "₡";
 }
 
-// ================= SUS =================
+// ================= META MENSUAL =================
+function actualizarMeta() {
+  let nuevoValor = Number(document.getElementById("metaInput").value);
+  if (nuevoValor < 0) {
+    alert("La meta no puede ser negativa");
+    return;
+  }
+  metaMensual = nuevoValor;
+  localStorage.setItem("metaMensual", JSON.stringify(metaMensual));
+  render();
+}
+
+// ================= SUBS =================
 function agregarSub() {
-  if (!subNombre.value || !subPrecio.value || !subDia.value) return;
+  if (!document.getElementById("subNombre").value || !document.getElementById("subPrecio").value || !document.getElementById("subDia").value) {
+    alert("Por favor completa todos los campos");
+    return;
+  }
 
   subs.push({
-    nombre: subNombre.value,
-    precio: Number(subPrecio.value),
-    dia: Number(subDia.value)
+    nombre: document.getElementById("subNombre").value,
+    precio: Number(document.getElementById("subPrecio").value),
+    dia: Number(document.getElementById("subDia").value)
   });
+
+  document.getElementById("subNombre").value = "";
+  document.getElementById("subPrecio").value = "";
+  document.getElementById("subDia").value = "";
 
   guardar(); render();
 }
@@ -57,28 +78,49 @@ function eliminarSub(i) {
 
 // ================= INGRESOS =================
 function agregarIngreso() {
-  if (!ingFecha.value || !ingMonto.value) return;
+  if (!document.getElementById("ingFecha").value || !document.getElementById("ingMonto").value) {
+    alert("Por favor completa fecha y monto");
+    return;
+  }
 
   ingresos.push({
-    fecha: ingFecha.value,
-    monto: Number(ingMonto.value)
+    fecha: document.getElementById("ingFecha").value,
+    monto: Number(document.getElementById("ingMonto").value)
   });
+
+  document.getElementById("ingFecha").value = "";
+  document.getElementById("ingMonto").value = "";
 
   guardar(); render();
 }
 
-function eliminarIngreso(i) {
-  ingresos.splice(i, 1);
-  guardar(); render();
+function eliminarIngreso(idx) {
+  // Find the actual index in the full ingresos array
+  let hoy = new Date();
+  let ingresosFiltrados = ingresos.filter(i => {
+    let f = new Date(i.fecha);
+    let diff = (hoy - f) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  }).sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+
+  let ingresoAEliminar = ingresosFiltrados[idx];
+  let indiceReal = ingresos.indexOf(ingresoAEliminar);
+  
+  if (indiceReal !== -1) {
+    ingresos.splice(indiceReal, 1);
+    guardar(); render();
+  }
 }
 
 function resetMes() {
-  let h = new Date();
-  ingresos = ingresos.filter(i => {
-    let f = new Date(i.fecha);
-    return f.getMonth() != h.getMonth();
-  });
-  guardar(); render();
+  if (confirm("¿Estás seguro de que quieres borrar todos los ingresos de este mes?")) {
+    let h = new Date();
+    ingresos = ingresos.filter(i => {
+      let f = new Date(i.fecha);
+      return f.getMonth() != h.getMonth();
+    });
+    guardar(); render();
+  }
 }
 
 function ponerFechaHoy() {
@@ -89,11 +131,17 @@ function ponerFechaHoy() {
 // ================= DIAS SIN INGRESO =================
 function bloquearDia() {
   let fecha = document.getElementById("fechaBloqueada").value;
-  if (!fecha) return;
+  if (!fecha) {
+    alert("Por favor selecciona una fecha");
+    return;
+  }
 
   if (!diasSinIngreso.includes(fecha)) {
     diasSinIngreso.push(fecha);
+    document.getElementById("fechaBloqueada").value = "";
     guardar(); render();
+  } else {
+    alert("Este día ya está bloqueado");
   }
 }
 
@@ -122,6 +170,7 @@ function diasHasta(dia) {
 function render() {
 
   document.getElementById("tc").textContent = tipoCambio.toFixed(2);
+  document.getElementById("metaActual").textContent = "$" + metaMensual.toFixed(0);
 
   let total = totalMes();
   let fondo = total * 0.05;
@@ -156,11 +205,11 @@ function render() {
       <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
       <td>${s.dia}</td>
       <td>${estado}</td>
-      <td><button onclick="eliminarSub(${i})">X</button></td>
+      <td><button class="btn-delete" onclick="eliminarSub(${i})" aria-label="Eliminar ${s.nombre}">✕</button></td>
     </tr>`;
   });
 
-  tablaSubs.innerHTML = tSubs;
+  document.getElementById("tablaSubs").innerHTML = tSubs || "<tr><td colspan='5' style='text-align:center;'>No hay suscripciones</td></tr>";
 
   // ===== INGRESOS (7 días + límite 20) =====
   let hoy = new Date();
@@ -182,11 +231,11 @@ function render() {
     <tr>
       <td>${i.fecha}</td>
       <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-      <td><button onclick="eliminarIngreso(${idx})">X</button></td>
+      <td><button class="btn-delete" onclick="eliminarIngreso(${idx})" aria-label="Eliminar ingreso">✕</button></td>
     </tr>`;
   });
 
-  tablaIngresos.innerHTML = tIng;
+  document.getElementById("tablaIngresos").innerHTML = tIng || "<tr><td colspan='3' style='text-align:center;'>No hay ingresos en los últimos 7 días</td></tr>";
 
   // ===== RESUMEN =====
   document.getElementById("totalMes").textContent =
@@ -204,18 +253,20 @@ function render() {
 
   let estadoDinero = document.getElementById("estadoDinero");
   if (estadoDinero) {
-    estadoDinero.textContent =
-      diferencia >= 0
-        ? `Te sobran ${simbolo()}${convertir(diferencia).toFixed(2)}`
-        : `Te faltan ${simbolo()}${convertir(Math.abs(diferencia)).toFixed(2)}`;
+    if (diferencia >= 0) {
+      estadoDinero.textContent = `✅ Te sobran ${simbolo()}${convertir(diferencia).toFixed(2)}`;
+      estadoDinero.style.color = "green";
+    } else {
+      estadoDinero.textContent = `⚠️ Te faltan ${simbolo()}${convertir(Math.abs(diferencia)).toFixed(2)}`;
+      estadoDinero.style.color = "red";
+    }
   }
 
   // ===== TOTAL 7 DIAS =====
   let total7 = ingresosFiltrados.reduce((a, b) => a + b.monto, 0);
   let t7 = document.getElementById("total7dias");
   if (t7) {
-    t7.textContent =
-      `Últimos 7 días: ${simbolo()}${convertir(total7).toFixed(2)}`;
+    t7.textContent = `📊 Últimos 7 días: ${simbolo()}${convertir(total7).toFixed(2)}`;
   }
 
   // ===== PLANIFICACION =====
@@ -225,7 +276,7 @@ function render() {
 
   let objetivoDiario = totalSubs / diasActivos;
 
-  let ingresoPromedio = total / new Date().getDate();
+  let ingresoPromedio = total > 0 ? total / new Date().getDate() : 0;
   let proyeccion = ingresoPromedio * diasActivos;
 
   let estadoPlan = "";
@@ -243,7 +294,7 @@ function render() {
   }
 
   document.getElementById("objetivoDiario").textContent =
-    `Objetivo diario: ${simbolo()}${convertir(objetivoDiario).toFixed(2)}`;
+    `🎯 Objetivo diario: ${simbolo()}${convertir(objetivoDiario).toFixed(2)}`;
 
   let estadoEl = document.getElementById("estadoPlan");
   estadoEl.textContent = estadoPlan;
@@ -255,15 +306,19 @@ function render() {
   }
 
   document.getElementById("cobertura").textContent =
-    `Cobertura días sin ingreso: ${simbolo()}${convertir(cobertura).toFixed(2)}`;
+    `📅 Cobertura días sin ingreso: ${simbolo()}${convertir(cobertura).toFixed(2)}`;
 
   // ===== LISTA BLOQUEADOS =====
   let lista = document.getElementById("listaBloqueados");
   if (lista) {
     lista.innerHTML = "";
-    diasSinIngreso.forEach((f, i) => {
-      lista.innerHTML += `<li>${f} <button onclick="eliminarBloqueado(${i})">X</button></li>`;
-    });
+    if (diasSinIngreso.length === 0) {
+      lista.innerHTML = "<li style='text-align:center; color: #999;'>No hay días bloqueados</li>";
+    } else {
+      diasSinIngreso.forEach((f, i) => {
+        lista.innerHTML += `<li><span>${f}</span> <button class="btn-delete" onclick="eliminarBloqueado(${i})" aria-label="Desbloquear ${f}">✕</button></li>`;
+      });
+    }
   }
 
   actualizarGrafica();
@@ -302,7 +357,7 @@ function actualizarGrafica() {
     valores.push(convertir(acum));
   });
 
-  let totalSubs = subs.reduce((acc, s) => acc + (s.precio * tipoCambio), 0);
+  let metaEnMonedaActual = convertir(metaMensual * tipoCambio);
 
   if (grafica) grafica.destroy();
 
@@ -315,11 +370,26 @@ function actualizarGrafica() {
     data: {
       labels: labels,
       datasets: [
-        { label: "Dinero", data: valores, tension: 0.3 },
-        { label: "Meta", data: labels.map(() => convertir(totalSubs)), borderDash: [6,6] }
+        { 
+          label: "Dinero Acumulado", 
+          data: valores, 
+          tension: 0.3,
+          borderColor: dark ? "#4CAF50" : "#2196F3",
+          backgroundColor: dark ? "rgba(76, 175, 80, 0.1)" : "rgba(33, 150, 243, 0.1)",
+          fill: true
+        },
+        { 
+          label: "Meta", 
+          data: labels.map(() => metaEnMonedaActual), 
+          borderDash: [6, 6],
+          borderColor: dark ? "#FFC107" : "#FF9800",
+          fill: false
+        }
       ]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: true,
       plugins: {
         legend: {
           labels: { color: dark ? "#eee" : "#111" }
@@ -339,11 +409,24 @@ function actualizarGrafica() {
   });
 }
 
+// ================= DARK MODE =================
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark"));
+  render();
+}
+
+// Load dark mode preference
+if (localStorage.getItem("darkMode") === "true") {
+  document.body.classList.add("dark");
+}
+
 // ================= GUARDAR =================
 function guardar() {
   localStorage.setItem("subs", JSON.stringify(subs));
   localStorage.setItem("ingresos", JSON.stringify(ingresos));
   localStorage.setItem("diasSinIngreso", JSON.stringify(diasSinIngreso));
+  localStorage.setItem("metaMensual", JSON.stringify(metaMensual));
 }
 
 // ================= DEV =================
@@ -375,7 +458,7 @@ window.devTools = {
 function forzarAPI() { obtenerTipoCambio(); }
 
 function resetTodo() {
-  if (confirm("BORRA TODO")) {
+  if (confirm("⚠️ BORRA TODO - Esta acción no se puede deshacer")) {
     localStorage.clear();
     location.reload();
   }
