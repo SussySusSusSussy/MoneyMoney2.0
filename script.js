@@ -1,10 +1,11 @@
 let devMode = false;
+
 let subs = JSON.parse(localStorage.getItem("subs")) || [];
 let ingresos = JSON.parse(localStorage.getItem("ingresos")) || [];
+let diasSinIngreso = JSON.parse(localStorage.getItem("diasSinIngreso")) || [];
 
 let tipoCambio = 520;
 let moneda = localStorage.getItem("moneda") || "CRC";
-let meta = localStorage.getItem("meta") ? Number(localStorage.getItem("meta")) : 20000;
 
 document.getElementById("moneda").value = moneda;
 
@@ -19,7 +20,6 @@ async function obtenerTipoCambio() {
     console.log("API error");
   }
 }
-
 obtenerTipoCambio();
 setInterval(obtenerTipoCambio, 3600000);
 
@@ -33,20 +33,20 @@ document.getElementById("moneda").addEventListener("change", e => {
 function convertir(v) {
   return moneda === "USD" ? v / tipoCambio : v;
 }
-
 function simbolo() {
   return moneda === "USD" ? "$" : "₡";
 }
 
 // ================= SUS =================
 function agregarSub() {
-  let nombre = subNombre.value;
-  let precio = Number(subPrecio.value);
-  let dia = Number(subDia.value);
+  if (!subNombre.value || !subPrecio.value || !subDia.value) return;
 
-  if (!nombre || !precio || !dia) return;
+  subs.push({
+    nombre: subNombre.value,
+    precio: Number(subPrecio.value),
+    dia: Number(subDia.value)
+  });
 
-  subs.push({ nombre, precio, dia });
   guardar(); render();
 }
 
@@ -81,10 +81,25 @@ function resetMes() {
   guardar(); render();
 }
 
-// 👉 BOTÓN HOY
 function ponerFechaHoy() {
-  let hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("ingFecha").value = hoy;
+  document.getElementById("ingFecha").value =
+    new Date().toISOString().split("T")[0];
+}
+
+// ================= DIAS SIN INGRESO =================
+function bloquearDia() {
+  let fecha = document.getElementById("fechaBloqueada").value;
+  if (!fecha) return;
+
+  if (!diasSinIngreso.includes(fecha)) {
+    diasSinIngreso.push(fecha);
+    guardar(); render();
+  }
+}
+
+function eliminarBloqueado(i) {
+  diasSinIngreso.splice(i, 1);
+  guardar(); render();
 }
 
 // ================= UTILS =================
@@ -114,12 +129,11 @@ function render() {
 
   subs.sort((a, b) => diasHasta(a.dia) - diasHasta(b.dia));
 
+  // ===== SUBS =====
   let tSubs = "";
-
   let disponibleTemp = disponible;
 
   subs.forEach((s, i) => {
-
     let costo = s.precio * tipoCambio;
     let estado = "Pendiente";
     let clase = "";
@@ -138,81 +152,124 @@ function render() {
 
     tSubs += `
     <tr class="${clase}">
-    <td>${s.nombre}</td>
-    <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
-    <td>${s.dia}</td>
-    <td>${estado}</td>
-    <td><button onclick="eliminarSub(${i})">X</button></td>
+      <td>${s.nombre}</td>
+      <td>${simbolo()}${convertir(costo).toFixed(2)}</td>
+      <td>${s.dia}</td>
+      <td>${estado}</td>
+      <td><button onclick="eliminarSub(${i})">X</button></td>
     </tr>`;
   });
 
   tablaSubs.innerHTML = tSubs;
 
-  // ================= INGRESOS (7 DÍAS) =================
+  // ===== INGRESOS (7 días + límite 20) =====
   let hoy = new Date();
 
   let ingresosFiltrados = ingresos.filter(i => {
     let f = new Date(i.fecha);
     let diff = (hoy - f) / (1000 * 60 * 60 * 24);
-    return diff <= 7 && diff >= 0;
+    return diff <= 7;
   });
 
-  // Limitar visualmente a últimos 20 registros
   ingresosFiltrados = ingresosFiltrados
-    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)) // más recientes primero
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
     .slice(0, 20);
 
   let tIng = "";
 
-  ingresosFiltrados.forEach((i) => {
-    let ingresoIndex = ingresos.indexOf(i);
+  ingresosFiltrados.forEach((i, idx) => {
     tIng += `
     <tr>
-    <td>${i.fecha}</td>
-    <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
-    <td><button onclick="eliminarIngreso(${ingresoIndex})">X</button></td>
+      <td>${i.fecha}</td>
+      <td>${simbolo()}${convertir(i.monto).toFixed(2)}</td>
+      <td><button onclick="eliminarIngreso(${idx})">X</button></td>
     </tr>`;
   });
 
   tablaIngresos.innerHTML = tIng;
 
-  // ================= RESUMEN =================
-  totalMesEl = document.getElementById("totalMes");
-  fondoEl = document.getElementById("fondo");
-  dispEl = document.getElementById("disponible");
+  // ===== RESUMEN =====
+  document.getElementById("totalMes").textContent =
+    simbolo() + convertir(total).toFixed(2);
 
-  totalMesEl.textContent = simbolo() + convertir(total).toFixed(2);
-  fondoEl.textContent = simbolo() + convertir(fondo).toFixed(2);
-  dispEl.textContent = simbolo() + convertir(disponible).toFixed(2);
+  document.getElementById("fondo").textContent =
+    simbolo() + convertir(fondo).toFixed(2);
 
-  // 👉 FALTA / SOBRA
+  document.getElementById("disponible").textContent =
+    simbolo() + convertir(disponible).toFixed(2);
+
+  // ===== FALTA / SOBRA =====
   let totalSubs = subs.reduce((acc, s) => acc + (s.precio * tipoCambio), 0);
   let diferencia = total - totalSubs;
 
-  let estadoEl = document.getElementById("estadoDinero");
-
-  if (estadoEl) {
-    if (diferencia >= 0) {
-      estadoEl.textContent = `Te sobran ${simbolo()}${convertir(diferencia).toFixed(2)}`;
-      estadoEl.style.color = "lime";
-    } else {
-      estadoEl.textContent = `Te faltan ${simbolo()}${convertir(Math.abs(diferencia)).toFixed(2)}`;
-      estadoEl.style.color = "red";
-    }
+  let estadoDinero = document.getElementById("estadoDinero");
+  if (estadoDinero) {
+    estadoDinero.textContent =
+      diferencia >= 0
+        ? `Te sobran ${simbolo()}${convertir(diferencia).toFixed(2)}`
+        : `Te faltan ${simbolo()}${convertir(Math.abs(diferencia)).toFixed(2)}`;
   }
 
-  // 👉 TOTAL 7 DÍAS
+  // ===== TOTAL 7 DIAS =====
   let total7 = ingresosFiltrados.reduce((a, b) => a + b.monto, 0);
-  let t7el = document.getElementById("total7dias");
+  let t7 = document.getElementById("total7dias");
+  if (t7) {
+    t7.textContent =
+      `Últimos 7 días: ${simbolo()}${convertir(total7).toFixed(2)}`;
+  }
 
-  if (t7el) {
-    t7el.textContent = `Últimos 7 días: ${simbolo()}${convertir(total7).toFixed(2)}`;
+  // ===== PLANIFICACION =====
+  let diasMes = 30;
+  let diasActivos = diasMes - diasSinIngreso.length;
+  if (diasActivos <= 0) diasActivos = 1;
+
+  let objetivoDiario = totalSubs / diasActivos;
+
+  let ingresoPromedio = total / new Date().getDate();
+  let proyeccion = ingresoPromedio * diasActivos;
+
+  let estadoPlan = "";
+  let colorPlan = "";
+
+  if (proyeccion >= totalSubs * 1.2) {
+    estadoPlan = "Vas sobrado 😎";
+    colorPlan = "lime";
+  } else if (proyeccion >= totalSubs) {
+    estadoPlan = "Vas justo 😐";
+    colorPlan = "orange";
+  } else {
+    estadoPlan = "No alcanzas 😬";
+    colorPlan = "red";
+  }
+
+  document.getElementById("objetivoDiario").textContent =
+    `Objetivo diario: ${simbolo()}${convertir(objetivoDiario).toFixed(2)}`;
+
+  let estadoEl = document.getElementById("estadoPlan");
+  estadoEl.textContent = estadoPlan;
+  estadoEl.style.color = colorPlan;
+
+  let cobertura = 0;
+  if (diasSinIngreso.length > 0 && diferencia > 0) {
+    cobertura = diferencia / diasSinIngreso.length;
+  }
+
+  document.getElementById("cobertura").textContent =
+    `Cobertura días sin ingreso: ${simbolo()}${convertir(cobertura).toFixed(2)}`;
+
+  // ===== LISTA BLOQUEADOS =====
+  let lista = document.getElementById("listaBloqueados");
+  if (lista) {
+    lista.innerHTML = "";
+    diasSinIngreso.forEach((f, i) => {
+      lista.innerHTML += `<li>${f} <button onclick="eliminarBloqueado(${i})">X</button></li>`;
+    });
   }
 
   actualizarGrafica();
   guardar();
 
-  // 👉 DEV PANEL
+  // DEV
   if (devMode) {
     document.getElementById("devTC").textContent = tipoCambio.toFixed(2);
     document.getElementById("devTotal").textContent = total.toFixed(2);
@@ -225,7 +282,15 @@ let grafica;
 
 function actualizarGrafica() {
 
-  let datos = [...ingresos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  let hoy = new Date();
+
+  let datos = ingresos.filter(i => {
+    let f = new Date(i.fecha);
+    let diff = (hoy - f) / (1000 * 60 * 60 * 24);
+    return diff <= 30;
+  });
+
+  datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
   let labels = [];
   let valores = [];
@@ -237,18 +302,39 @@ function actualizarGrafica() {
     valores.push(convertir(acum));
   });
 
+  let totalSubs = subs.reduce((acc, s) => acc + (s.precio * tipoCambio), 0);
+
   if (grafica) grafica.destroy();
 
   let ctx = document.getElementById("grafica").getContext("2d");
+
+  let dark = document.body.classList.contains("dark");
 
   grafica = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
       datasets: [
-        { label: "Dinero", data: valores, tension: 0.2 },
-        { label: "Meta", data: labels.map(() => convertir(meta)), borderDash: [5, 5] }
+        { label: "Dinero", data: valores, tension: 0.3 },
+        { label: "Meta", data: labels.map(() => convertir(totalSubs)), borderDash: [6,6] }
       ]
+    },
+    options: {
+      plugins: {
+        legend: {
+          labels: { color: dark ? "#eee" : "#111" }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: dark ? "#eee" : "#111" },
+          grid: { color: dark ? "#333" : "#ccc" }
+        },
+        y: {
+          ticks: { color: dark ? "#eee" : "#111" },
+          grid: { color: dark ? "#333" : "#ccc" }
+        }
+      }
     }
   });
 }
@@ -257,10 +343,10 @@ function actualizarGrafica() {
 function guardar() {
   localStorage.setItem("subs", JSON.stringify(subs));
   localStorage.setItem("ingresos", JSON.stringify(ingresos));
-  localStorage.setItem("meta", meta.toString());
+  localStorage.setItem("diasSinIngreso", JSON.stringify(diasSinIngreso));
 }
 
-// ================= DEV MODE =================
+// ================= DEV =================
 let devKey = "";
 
 window.addEventListener("keydown", e => {
@@ -268,68 +354,31 @@ window.addEventListener("keydown", e => {
 
   if (devKey.includes("devmode")) {
     devMode = !devMode;
-
     document.getElementById("devPanel").style.display =
       devMode ? "block" : "none";
-
-    alert(devMode ? "DEV MODE ACTIVADO 😎" : "DEV MODE OFF");
-
+    alert(devMode ? "DEV MODE 😎" : "DEV OFF");
     devKey = "";
   }
 });
 
-// 👉 herramientas pro
 window.devTools = {
-  addMoney: (cantidad) => {
-    ingresos.push({
-      fecha: new Date().toISOString().split("T")[0],
-      monto: cantidad
-    });
+  addMoney: (c) => {
+    ingresos.push({ fecha: new Date().toISOString().split("T")[0], monto: c });
     guardar(); render();
   },
   godMode: () => {
-    ingresos.push({
-      fecha: new Date().toISOString().split("T")[0],
-      monto: 9999999
-    });
-    guardar(); render();
-  },
-  fakeSubs: () => {
-    subs.push({ nombre: "Netflix", precio: 5000, dia: 10 });
-    subs.push({ nombre: "Spotify", precio: 3000, dia: 5 });
-    guardar(); render();
-  },
-  setMeta: (cantidad) => {
-    meta = cantidad;
+    ingresos.push({ fecha: new Date().toISOString().split("T")[0], monto: 9999999 });
     guardar(); render();
   }
 };
 
-function forzarAPI() {
-  obtenerTipoCambio();
-}
+function forzarAPI() { obtenerTipoCambio(); }
 
 function resetTodo() {
-  if (confirm("¿Seguro? BORRA TODO")) {
+  if (confirm("BORRA TODO")) {
     localStorage.clear();
     location.reload();
   }
 }
-// cargar preferencia
-if (localStorage.getItem("darkMode") === "on") {
-  document.body.classList.add("dark");
-}
 
-// toggle
-function toggleDark() {
-  document.body.classList.toggle("dark");
-
-  if (document.body.classList.contains("dark")) {
-    localStorage.setItem("darkMode", "on");
-  } else {
-    localStorage.setItem("darkMode", "off");
-  }
-}
-
-// ================= INIT =================
 render();
