@@ -6,6 +6,32 @@
 <title>Sistema Financiero</title>
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* Límite visual para tablas — agrega esto a tu styles.css si preferís */
+  .table-wrapper {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  /* El thead queda fijo al hacer scroll */
+  .table-wrapper table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-header, #f5f5f5);
+  }
+
+  /* Scrollbar más discreta en navegadores modernos */
+  .table-wrapper::-webkit-scrollbar {
+    width: 6px;
+  }
+  .table-wrapper::-webkit-scrollbar-thumb {
+    background: #aaa;
+    border-radius: 3px;
+  }
+</style>
 </head>
 <body>
 
@@ -57,18 +83,21 @@
       <button onclick="agregarSub()" class="btn-primary">Agregar</button>
     </div>
 
-    <table class="data-table" role="grid">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Precio</th>
-          <th>Día</th>
-          <th>Estado</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="tablaSubs"></tbody>
-    </table>
+    <!-- FIX: table-wrapper limita altura y permite scroll con thead fijo -->
+    <div class="table-wrapper">
+      <table class="data-table" role="grid">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Día</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaSubs"></tbody>
+      </table>
+    </div>
   </section>
 
   <hr>
@@ -86,16 +115,19 @@
       <button onclick="resetMes()" class="btn-danger">Reset Mes</button>
     </div>
 
-    <table class="data-table" role="grid">
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Monto</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody id="tablaIngresos"></tbody>
-    </table>
+    <!-- FIX: table-wrapper limita altura y permite scroll con thead fijo -->
+    <div class="table-wrapper">
+      <table class="data-table" role="grid">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tablaIngresos"></tbody>
+      </table>
+    </div>
     <p id="total7dias" class="info-text"></p>
   </section>
 
@@ -122,10 +154,6 @@
       </div>
       <div class="summary-item">
         <strong id="objetivoDiario"></strong>
-      </div>
-      <div class="summary-item" id="estadoPlanContainer">
-        <strong>Plan:</strong>
-        <span id="estadoPlan"></span>
       </div>
       <div class="summary-item">
         <strong id="cobertura"></strong>
