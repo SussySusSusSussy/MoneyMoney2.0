@@ -11,14 +11,6 @@ let moneda = localStorage.getItem("moneda") || "CRC";
 document.getElementById("moneda").value = moneda;
 document.getElementById("metaInput").value = metaMensual;
 
-// ================= UTILS FECHA (FIX TIMEZONE) =================
-// El problema: new Date("2025-01-15") interpreta como UTC medianoche
-// En Costa Rica (UTC-6) eso queda el 14 → siempre 1 día antes
-// Solución: parsear con hora local explícita
-function parsearFecha(str) {
-  return new Date(str + "T00:00:00");
-}
-
 // ================= API =================
 async function obtenerTipoCambio() {
   try {
@@ -107,13 +99,12 @@ function resetMes() {
   if (!confirm("Borrar ingresos del mes?")) return;
 
   let h = new Date();
-  // FIX: usar parsearFecha() para evitar el bug de timezone
-  ingresos = ingresos.filter(i => parsearFecha(i.fecha).getMonth() != h.getMonth());
+  ingresos = ingresos.filter(i => new Date(i.fecha).getMonth() != h.getMonth());
 
   guardar(); render();
 }
 
-// FIX FECHA LOCAL — ya estaba correcto, lo dejamos igual
+// ✅ FIX FECHA LOCAL
 function ponerFechaHoy() {
   let h = new Date();
   let y = h.getFullYear();
@@ -145,8 +136,7 @@ function eliminarBloqueado(i) {
 function totalMes() {
   let h = new Date();
   return ingresos
-    // FIX: parsearFecha() en vez de new Date() directo
-    .filter(i => parsearFecha(i.fecha).getMonth() == h.getMonth())
+    .filter(i => new Date(i.fecha).getMonth() == h.getMonth())
     .reduce((a, b) => a + b.monto, 0);
 }
 
@@ -201,12 +191,11 @@ function render() {
   let hoy = new Date();
 
   let filtrados = ingresos.filter(i => {
-    // FIX: parsearFecha() para diferencia de días correcta
-    let diff = (hoy - parsearFecha(i.fecha)) / 86400000;
+    let diff = (hoy - new Date(i.fecha)) / 86400000;
     return diff <= 7;
   });
 
-  filtrados.sort((a, b) => parsearFecha(b.fecha) - parsearFecha(a.fecha));
+  filtrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   filtrados = filtrados.slice(0, 20);
 
   let tIng = "";
@@ -229,14 +218,6 @@ function render() {
   fondoEl.textContent = simbolo()+convertir(fondo).toFixed(2);
   disponibleEl.textContent = simbolo()+convertir(disponible).toFixed(2);
 
-  // ===== BLOQUEADOS =====
-  let listaBloqueados = document.getElementById("listaBloqueados");
-  if (listaBloqueados) {
-    listaBloqueados.innerHTML = diasSinIngreso.map((f, i) => `
-      <li>${f} <button onclick="eliminarBloqueado(${i})">✕</button></li>
-    `).join("") || "<li>Sin días bloqueados</li>";
-  }
-
   actualizarGrafica();
   guardar();
 }
@@ -249,17 +230,17 @@ function actualizarGrafica() {
   let hoy = new Date();
 
   let datos = ingresos.filter(i => {
-    // FIX: parsearFecha() para diferencia correcta
-    let diff = (hoy - parsearFecha(i.fecha)) / 86400000;
+    let diff = (hoy - new Date(i.fecha)) / 86400000;
     return diff <= 30;
   });
 
+  // ✅ FIX: evitar crash
   if (datos.length === 0) {
     if (grafica) grafica.destroy();
     return;
   }
 
-  datos.sort((a, b) => parsearFecha(a.fecha) - parsearFecha(b.fecha));
+  datos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
   let labels = [];
   let valores = [];
